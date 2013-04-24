@@ -1,4 +1,4 @@
-{ "name" : "file"
+{ "name" : "webinos-api-file"
 , "version" : "0.7.0"
 , "description" : "File API (incl. Writer, and Directories and System)"
 , "keywords" :
