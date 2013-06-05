@@ -1,5 +1,5 @@
 { "name" : "webinos-api-file"
-, "version" : "0.7.0"
+, "version" : "0.8.0"
 , "description" : "File API (incl. Writer, and Directories and System)"
 , "keywords" :
   [ "webinos"
@@ -17,9 +17,11 @@
   { "type" : "git"
   , "url" : "http://github.com/webinos/Webinos-Platform.git"
   }
+, "devDependencies" :
+  { "webinos-jsonrpc2" : "*"
+  }
 , "dependencies" :
-  { "find-dependencies" : "0.0.x"
-  , "mkdirp" : "0.3.x"
+  { "mkdirp" : "0.3.x"
   , "express" : "3.1.x"
   , "node-uuid" : "1.4.x"
   , "dbox": "0.5.x"
