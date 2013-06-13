@@ -9,39 +9,24 @@ webinos: File API (incl. Writer, and Directories and System)
 
 # Shares
 
-We are now introducing the concept of shares, i.e., a shared folder on one of the supported file systems (currently local and dropbox). At the moment, shares are configured in the webinos_config.json. This will change however, when opinions about configuration of webinos eventually converge.
+We are now introducing the concept of shares, i.e., a shared folder on one of the supported file systems (currently local and dropbox). At the moment, shares are configured in the `config.json`. This will change however, when opinions about configuration of webinos eventually converge.
 
 ## Local shares
 
-Sharing a folder from the local file system requires creating a named share including the full path to the folder. The default webinos_config.json includes an example (excerpt):
+Sharing a folder from the local file system requires creating a named share including the full path to the folder. Here's an example (excerpt):
 
 ```javascript
-    { "name" : "file"
-    , "params" :
-      { "local" :
-        { "shares" :
-          [ { "name" : "desktop"
-            , "path" : "/path/to/desktop"
-            }
-          ]
+{ "name" : "file"
+, "params" :
+  { "local" :
+    { "shares" :
+      [ { "name" : "desktop"
+        , "path" : "/path/to/desktop"
         }
-      }
+      ]
     }
-```
-
-Generating temporary URLs and serving underlying content from the local file system also requires setting up a server (default: localhost:9999):
-
-```javascript
-    { "name" : "file"
-    , "params" :
-      { "local" :
-        { "server" :
-          { "port" : 9999
-          , "hostname" : "localhost"
-          }
-        }
-      }
-    }
+  }
+}
 ```
 
 ## Dropbox shares
@@ -87,22 +72,22 @@ app.accesstoken(request_token, function (status, access_token) {
 Configure webinos to use the obtained access token and set up the desired shares (excerpt):
 
 ```javascript
-    { "name" : "file"
-    , "params" :
-      { "dropbox" :
-        { "access_token" :
-          { "oauth_token_secret" : "a12bc3d4e5fghi6"
-          , "oauth_token" : "ab1c2defghijklm"
-          , "uid" : "1234567"
-          }
-        , "shares" :
-          [ { "name" : "full"
-            , "path" : "/"
-            }
-          ]
-        }
+{ "name" : "file"
+, "params" :
+  { "dropbox" :
+    { "access_token" :
+      { "oauth_token_secret" : "a12bc3d4e5fghi6"
+      , "oauth_token" : "ab1c2defghijklm"
+      , "uid" : "1234567"
       }
+    , "shares" :
+      [ { "name" : "full"
+        , "path" : "/"
+        }
+      ]
     }
+  }
+}
 ```
 
 Generating temporary URLs and serving underlying content from a dropbox file system is delegated to dropbox.
