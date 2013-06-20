@@ -90,9 +90,8 @@ if (typeof webinos.file === "undefined") webinos.file = {};
       self.rpc.executeRPC(getLink, function (link) {
         var download = parent.rpc.createRPC(parent.service, "download", { link : link, parent : parent, name : newName || self.name });
         parent.rpc.executeRPC(download, function (entry) {
-          // TODO Distinguish between directories and files?
-          var removeRecursively = self.rpc.createRPC(self.service, "removeRecursively", { entry : self });
-          self.rpc.executeRPC(removeRecursively, function () {
+          var remove = self.rpc.createRPC(self.service, (self.isDirectory ? "removeRecursively" : "remove"), { entry : self });
+          self.rpc.executeRPC(remove, function () {
             if (self.isDirectory) {
               successCallback(new DirectoryEntry(parent.filesystem, entry.fullPath));
             } else {
