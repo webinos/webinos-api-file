@@ -26,7 +26,7 @@ if (typeof webinos.file === "undefined") webinos.file = {};
 
   webinos.util.inherits(Service, WebinosService);
   function Service(object, rpc) {
-    Service.super_.call(this, object);
+    WebinosService.call(this, object);
 
     this.rpc = rpc;
   }
@@ -165,7 +165,7 @@ if (typeof webinos.file === "undefined") webinos.file = {};
 
   webinos.util.inherits(DirectoryEntry, Entry);
   function DirectoryEntry(filesystem, fullPath) {
-    DirectoryEntry.super_.call(this, filesystem, fullPath);
+    Entry.call(this, filesystem, fullPath);
   }
 
   DirectoryEntry.prototype.isDirectory = true;
@@ -231,7 +231,7 @@ if (typeof webinos.file === "undefined") webinos.file = {};
 
   webinos.util.inherits(FileEntry, Entry);
   function FileEntry(filesystem, fullPath) {
-    FileEntry.super_.call(this, filesystem, fullPath);
+    Entry.call(this, filesystem, fullPath);
   }
 
   FileEntry.prototype.isFile = true;
@@ -300,7 +300,7 @@ if (typeof webinos.file === "undefined") webinos.file = {};
 
   webinos.util.inherits(FileWriter, webinos.util.EventTarget);
   function FileWriter(entry) {
-    FileWriter.super_.call(this);
+    webinos.util.EventTarget.call(this);
 
     this.entry = entry;
 

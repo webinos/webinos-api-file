@@ -39,7 +39,7 @@ if (typeof webinos.util === "undefined") webinos.util = {};
 
   inherits(CustomError, Error);
   function CustomError(name, message) {
-    CustomError.super_.call(this, message || name);
+    Error.call(this, message || name);
 
     this.name = name;
   }
@@ -103,7 +103,7 @@ if (typeof webinos.util === "undefined") webinos.util = {};
 
   inherits(ProgressEvent, Event);
   function ProgressEvent(type, eventInitDict) {
-    ProgressEvent.super_.call(this, type);
+    Event.call(this, type);
 
     eventInitDict = eventInitDict || {};
 
