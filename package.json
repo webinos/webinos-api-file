@@ -22,6 +22,7 @@
   }
 , "dependencies" :
   { "mkdirp" : "0.3.x"
+  , "request" : "2.21.x"
   , "send" : "0.1.x"
   , "node-uuid" : "1.4.x"
   , "dbox": "0.5.x"

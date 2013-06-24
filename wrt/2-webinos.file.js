@@ -26,15 +26,15 @@ if (typeof webinos.file === "undefined") webinos.file = {};
 
   webinos.util.inherits(Service, WebinosService);
   function Service(object, rpc) {
-    Service.super_.call(this, object);
+    WebinosService.call(this, object);
 
     this.rpc = rpc;
   }
 
   Service.prototype.requestFileSystem = function (type, size, successCallback, errorCallback) {
     var self = this;
-    var request = self.rpc.createRPC(self, "requestFileSystem");
-    self.rpc.executeRPC(request, function (filesystem) {
+    var requestFileSystem = self.rpc.createRPC(self, "requestFileSystem");
+    self.rpc.executeRPC(requestFileSystem, function (filesystem) {
       successCallback(new FileSystem(self, filesystem.name));
     }, errorCallback);
   };
@@ -68,37 +68,65 @@ if (typeof webinos.file === "undefined") webinos.file = {};
   Entry.prototype.isDirectory = false;
 
   Entry.prototype.getMetadata = function (successCallback, errorCallback) {
-    var request = this.rpc.createRPC(this.service, "getMetadata",
-        { entry : this });
-    this.rpc.executeRPC(request, function (metadata) {
+    var getMetadata = this.rpc.createRPC(this.service, "getMetadata", { entry : this });
+    this.rpc.executeRPC(getMetadata, function (metadata) {
       successCallback(new Metadata(metadata));
     }, errorCallback);
   };
 
   Entry.prototype.moveTo = function (parent, newName, successCallback, errorCallback) {
     var self = this;
-    var request = self.rpc.createRPC(self.service, "moveTo",
-      { source : self, parent : parent, newName : newName });
-    self.rpc.executeRPC(request, function (entry) {
-      if (self.isDirectory) {
-        successCallback(new DirectoryEntry(self.filesystem, entry.fullPath));
-      } else {
-        successCallback(new FileEntry(self.filesystem, entry.fullPath));
-      }
-    }, errorCallback);
+    if (self.service === parent.service) {
+      var moveTo = self.rpc.createRPC(self.service, "moveTo", { source : self, parent : parent, newName : newName });
+      self.rpc.executeRPC(moveTo, function (entry) {
+        if (self.isDirectory) {
+          successCallback(new DirectoryEntry(self.filesystem, entry.fullPath));
+        } else {
+          successCallback(new FileEntry(self.filesystem, entry.fullPath));
+        }
+      }, errorCallback);
+    } else {
+      var getLink = self.rpc.createRPC(self.service, "getLink", { entry : self });
+      self.rpc.executeRPC(getLink, function (link) {
+        var download = parent.rpc.createRPC(parent.service, "download", { link : link, parent : parent, name : newName || self.name });
+        parent.rpc.executeRPC(download, function (entry) {
+          var remove = self.rpc.createRPC(self.service, (self.isDirectory ? "removeRecursively" : "remove"), { entry : self });
+          self.rpc.executeRPC(remove, function () {
+            if (self.isDirectory) {
+              successCallback(new DirectoryEntry(parent.filesystem, entry.fullPath));
+            } else {
+              successCallback(new FileEntry(parent.filesystem, entry.fullPath));
+            }
+          }, errorCallback);
+        }, errorCallback);
+      }, errorCallback);
+    }
   };
 
   Entry.prototype.copyTo = function (parent, newName, successCallback, errorCallback) {
     var self = this;
-    var request = self.rpc.createRPC(self.service, "copyTo",
-        { source : self, parent : parent, newName : newName });
-    self.rpc.executeRPC(request, function (entry) {
-      if (self.isDirectory) {
-        successCallback(new DirectoryEntry(self.filesystem, entry.fullPath));
-      } else {
-        successCallback(new FileEntry(self.filesystem, entry.fullPath));
-      }
-    }, errorCallback);
+    if (self.service === parent.service) {
+      var copyTo = self.rpc.createRPC(self.service, "copyTo", { source : self, parent : parent, newName : newName });
+      self.rpc.executeRPC(copyTo, function (entry) {
+        if (self.isDirectory) {
+          successCallback(new DirectoryEntry(self.filesystem, entry.fullPath));
+        } else {
+          successCallback(new FileEntry(self.filesystem, entry.fullPath));
+        }
+      }, errorCallback);
+    } else {
+      var getLink = self.rpc.createRPC(self.service, "getLink", { entry : self });
+      self.rpc.executeRPC(getLink, function (link) {
+        var download = parent.rpc.createRPC(parent.service, "download", { link : link, parent : parent, name : newName || self.name });
+        parent.rpc.executeRPC(download, function (entry) {
+          if (self.isDirectory) {
+            successCallback(new DirectoryEntry(parent.filesystem, entry.fullPath));
+          } else {
+            successCallback(new FileEntry(parent.filesystem, entry.fullPath));
+          }
+        }, errorCallback);
+      }, errorCallback);
+    }
   };
 
   Entry.prototype.toURL = function () {
@@ -106,14 +134,14 @@ if (typeof webinos.file === "undefined") webinos.file = {};
   };
 
   Entry.prototype.remove = function (successCallback, errorCallback) {
-    var request = this.rpc.createRPC(this.service, "remove", { entry : this });
-    this.rpc.executeRPC(request, successCallback, errorCallback);
+    var remove = this.rpc.createRPC(this.service, "remove", { entry : this });
+    this.rpc.executeRPC(remove, successCallback, errorCallback);
   };
 
   Entry.prototype.getParent = function (successCallback, errorCallback) {
     var self = this;
-    var request = self.rpc.createRPC(self.service, "getParent", { entry : self });
-    self.rpc.executeRPC(request, function (entry) {
+    var getParent = self.rpc.createRPC(self.service, "getParent", { entry : self });
+    self.rpc.executeRPC(getParent, function (entry) {
       successCallback(new DirectoryEntry(self.filesystem, entry.fullPath));
     }, errorCallback);
   };
@@ -136,7 +164,7 @@ if (typeof webinos.file === "undefined") webinos.file = {};
 
   webinos.util.inherits(DirectoryEntry, Entry);
   function DirectoryEntry(filesystem, fullPath) {
-    DirectoryEntry.super_.call(this, filesystem, fullPath);
+    Entry.call(this, filesystem, fullPath);
   }
 
   DirectoryEntry.prototype.isDirectory = true;
@@ -147,25 +175,23 @@ if (typeof webinos.file === "undefined") webinos.file = {};
 
   DirectoryEntry.prototype.getFile = function (path, options, successCallback, errorCallback) {
     var self = this;
-    var request = self.rpc.createRPC(self.service, "getFile",
-        { entry : self, path : path, options : options });
-    self.rpc.executeRPC(request, function (entry) {
+    var getFile = self.rpc.createRPC(self.service, "getFile", { entry : self, path : path, options : options });
+    self.rpc.executeRPC(getFile, function (entry) {
       successCallback(new FileEntry(self.filesystem, entry.fullPath));
     }, errorCallback);
   };
 
   DirectoryEntry.prototype.getDirectory = function (path, options, successCallback, errorCallback) {
     var self = this;
-    var request = self.rpc.createRPC(self.service, "getDirectory",
-        { entry : self, path : path, options : options });
-    self.rpc.executeRPC(request, function (entry) {
+    var getDirectory = self.rpc.createRPC(self.service, "getDirectory", { entry : self, path : path, options : options });
+    self.rpc.executeRPC(getDirectory, function (entry) {
       successCallback(new DirectoryEntry(self.filesystem, entry.fullPath));
     }, errorCallback);
   };
 
   DirectoryEntry.prototype.removeRecursively = function (successCallback, errorCallback) {
-    var request = this.rpc.createRPC(this.service, "removeRecursively", { entry : this });
-    this.rpc.executeRPC(request, successCallback, errorCallback);
+    var removeRecursively = this.rpc.createRPC(this.service, "removeRecursively", { entry : this });
+    this.rpc.executeRPC(removeRecursively, successCallback, errorCallback);
   };
 
   function DirectoryReader(entry) {
@@ -187,8 +213,8 @@ if (typeof webinos.file === "undefined") webinos.file = {};
     }
 
     if (typeof self.entries === "undefined") {
-      var request = self.rpc.createRPC(self.service, "readEntries", { entry : self.entry });
-      self.rpc.executeRPC(request, function (entries) {
+      var readEntries = self.rpc.createRPC(self.service, "readEntries", { entry : self.entry });
+      self.rpc.executeRPC(readEntries, function (entries) {
         self.entries = entries.map(function (entry) {
           if (entry.isDirectory) {
             return new DirectoryEntry(self.entry.filesystem, entry.fullPath);
@@ -204,20 +230,20 @@ if (typeof webinos.file === "undefined") webinos.file = {};
 
   webinos.util.inherits(FileEntry, Entry);
   function FileEntry(filesystem, fullPath) {
-    FileEntry.super_.call(this, filesystem, fullPath);
+    Entry.call(this, filesystem, fullPath);
   }
 
   FileEntry.prototype.isFile = true;
 
   FileEntry.prototype.getLink = function (successCallback, errorCallback) {
-    var request = this.rpc.createRPC(this.service, "getLink", { entry : this });
-    this.rpc.executeRPC(request, successCallback, errorCallback);
+    var getLink = this.rpc.createRPC(this.service, "getLink", { entry : this });
+    this.rpc.executeRPC(getLink, successCallback, errorCallback);
   };
 
   FileEntry.prototype.createWriter = function (successCallback, errorCallback) {
     var self = this;
-    var request = self.rpc.createRPC(self.service, "getMetadata", { entry : self });
-    self.rpc.executeRPC(request, function (metadata) {
+    var getMetadata = self.rpc.createRPC(self.service, "getMetadata", { entry : self });
+    self.rpc.executeRPC(getMetadata, function (metadata) {
       var writer = new FileWriter(self);
       writer.length = metadata.size;
 
@@ -227,8 +253,8 @@ if (typeof webinos.file === "undefined") webinos.file = {};
 
   FileEntry.prototype.file = function (successCallback, errorCallback) {
     var self = this;
-    var request = self.rpc.createRPC(self.service, "getMetadata", { entry : self });
-    self.rpc.executeRPC(request, function (metadata) {
+    var getMetadata = self.rpc.createRPC(self.service, "getMetadata", { entry : self });
+    self.rpc.executeRPC(getMetadata, function (metadata) {
       var blobParts = [];
 
       var remote;
@@ -243,8 +269,8 @@ if (typeof webinos.file === "undefined") webinos.file = {};
       port.data = function (params) {
         blobParts.push(webinos.util.hex2ab(params.data));
 
-        var message = self.rpc.createRPC(remote, "resume", null);
-        self.rpc.executeRPC(message);
+        var resume = self.rpc.createRPC(remote, "resume", null);
+        self.rpc.executeRPC(resume);
       };
       port.end = function () {};
       port.close = function () {
@@ -273,7 +299,7 @@ if (typeof webinos.file === "undefined") webinos.file = {};
 
   webinos.util.inherits(FileWriter, webinos.util.EventTarget);
   function FileWriter(entry) {
-    FileWriter.super_.call(this);
+    webinos.util.EventTarget.call(this);
 
     this.entry = entry;
 
@@ -350,9 +376,8 @@ if (typeof webinos.file === "undefined") webinos.file = {};
     // reader.onprogress = function (event) {};
     // reader.onabort = function (event) {};
     reader.onload = function () {
-      var message = self.rpc.createRPC(remote, "write",
-          { data : webinos.util.ab2hex(reader.result) });
-      self.rpc.executeRPC(message, function (bytesWritten) {
+      var write = self.rpc.createRPC(remote, "write", { data : webinos.util.ab2hex(reader.result) });
+      self.rpc.executeRPC(write, function (bytesWritten) {
         self.position += bytesWritten;
         self.length = Math.max(self.position, self.length);
 
@@ -361,8 +386,8 @@ if (typeof webinos.file === "undefined") webinos.file = {};
     };
     // reader.onloadend = function (event) {};
     reader.onerror = function () {
-      var message = self.rpc.createRPC(remote, "destroy");
-      self.rpc.executeRPC(message, function () {
+      var destroy = self.rpc.createRPC(remote, "destroy");
+      self.rpc.executeRPC(destroy, function () {
         try {
           self.error = reader.error;
           self.readyState = FileWriter.DONE;
@@ -379,8 +404,8 @@ if (typeof webinos.file === "undefined") webinos.file = {};
       if (iterator.hasNext()) {
         reader.readAsArrayBuffer(iterator.next());
       } else {
-        var message = self.rpc.createRPC(remote, "end");
-        self.rpc.executeRPC(message, function () {
+        var end = self.rpc.createRPC(remote, "end");
+        self.rpc.executeRPC(end, function () {
           try {
             self.readyState = FileWriter.DONE;
             self.dispatchEvent(new webinos.util.ProgressEvent("write"));
@@ -394,7 +419,9 @@ if (typeof webinos.file === "undefined") webinos.file = {};
 
     var remote;
     var port = self.rpc.createRPC(self.service, "write",
-       { entry : self.entry, options : { start : self.position } });
+       { entry : self.entry
+       , options : { start : self.position }
+       });
     port.ref = function (params, successCallback, errorCallback, ref) {
       remote = ref;
     };
@@ -452,9 +479,8 @@ if (typeof webinos.file === "undefined") webinos.file = {};
     self.readyState = FileWriter.WRITING;
     self.dispatchEvent(new webinos.util.ProgressEvent("writestart"));
 
-    var request = self.rpc.createRPC(self.service, "truncate",
-        { entry : self.entry, size : size });
-    self.rpc.executeRPC(request, function () {
+    var truncate = self.rpc.createRPC(self.service, "truncate", { entry : self.entry, size : size });
+    self.rpc.executeRPC(truncate, function () {
       self.length = size;
       self.position = Math.min(self.position, size);
 
