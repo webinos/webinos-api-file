@@ -19,95 +19,107 @@
 describe("File API", function () {
   var TIMEOUT = 15000
 
-  var service
-  function findService() {
+  var service1, service2
+  function findServices() {
     runs(function () {
       webinos.discovery.findServices(
           new ServiceType("http://webinos.org/api/file"), {
             onFound : function (ref) {
-              service = ref
+              if (ref.description.substr(0, 5) === "test1") {
+                service1 = ref
+              } else if (ref.description.substr(0, 5) === "test2") {
+                service2 = ref
+              }
             }
           })
     })
 
     waitsFor(function () {
-      return !!service
-    }, "the service to be discovered", TIMEOUT)
+      return !!service1 && !!service2
+    }, "the services to be discovered", TIMEOUT)
   }
 
-  function bindService() {
-    var bound = false
+  function bindServices() {
+    var bound = 0
     runs(function () {
-      service.bindService({
+      service1.bindService({
         onBind : function () {
-          bound = true
+          bound++
+        }
+      })
+
+      service2.bindService({
+        onBind : function () {
+          bound++
         }
       })
     })
 
     waitsFor(function () {
-      return bound
-    }, "the service to be bound", TIMEOUT)
+      return bound == 2
+    }, "the services to be bound", TIMEOUT)
   }
 
-  function clearService() {
-    service = null
+  function clearServices() {
+    service1 = null; service2 = null
   }
 
-  describe("service", function () {
+  describe("services", function () {
     it("should be discoverable", function () {
-      findService()
-      clearService()
+      findServices()
+      clearServices()
     })
 
     it("should be bindable", function () {
-      findService()
-      bindService()
-      clearService()
+      findServices()
+      bindServices()
+      clearServices()
     })
   })
 
-  var fileSystem
-  function requestFileSystem() {
+  var fileSystem1, fileSystem2
+  function requestFileSystems() {
     runs(function () {
-      service.requestFileSystem(null, null, function (ref) {
-        fileSystem = ref
+      service1.requestFileSystem(null, null, function (ref) {
+        fileSystem1 = ref
+      })
+
+      service2.requestFileSystem(null, null, function (ref) {
+        fileSystem2 = ref
       })
     })
 
     waitsFor(function () {
-      return !!fileSystem
-    }, "the file system to be returned", TIMEOUT)
+      return !!fileSystem1 && !!fileSystem2
+    }, "the file systems to be returned", TIMEOUT)
   }
 
-  function clearFileSystem() {
-    fileSystem = null
+  function clearFileSystems() {
+    fileSystem1 = null; fileSystem2 = null
   }
 
-  describe("file system", function () {
-    beforeEach(findService)
-    beforeEach(bindService)
-    afterEach(clearService)
+  describe("file systems", function () {
+    beforeEach(findServices)
+    beforeEach(bindServices)
+    afterEach(clearServices)
 
     it("should be requestable", function () {
-      requestFileSystem()
-      clearFileSystem()
+      requestFileSystems()
+      clearFileSystems()
     })
 
-    xit("should be the same on (identical) subsequent requests",
-        function () {})
+    xit("should be the same on (identical) subsequent requests", function () {})
   })
 
   var directory
-  function createDirectory(name, options) {
+  function createDirectory(fileSystem, name, options) {
     var relativeName = name || "directory"
       , relativeOptions = options || { create : true }
 
     runs(function () {
-      fileSystem.root.getDirectory(relativeName, relativeOptions,
-          function (ref) {
-            directory = ref
-          })
+      fileSystem.root.getDirectory(relativeName, relativeOptions, function (ref) {
+        directory = ref
+      })
     })
 
     waitsFor(function () {
@@ -128,25 +140,25 @@ describe("File API", function () {
   }
 
   describe("directory entry", function () {
-    beforeEach(findService)
-    beforeEach(bindService)
-    beforeEach(requestFileSystem)
-    afterEach(clearFileSystem)
-    afterEach(clearService)
+    beforeEach(findServices)
+    beforeEach(bindServices)
+    beforeEach(requestFileSystems)
+    afterEach(clearFileSystems)
+    afterEach(clearServices)
 
     it("should be creatable and removable", function () {
-      createDirectory()
+      createDirectory(fileSystem1)
       removeDirectory()
     })
 
     xit("should not be recreatable in exlcusive mode", function () {})
 
     it("should be getable", function () {
-      createDirectory("directory")
+      createDirectory(fileSystem1, "directory")
 
       var clone
       runs(function () {
-        fileSystem.root.getDirectory("directory", null, function (ref) {
+        fileSystem1.root.getDirectory("directory", null, function (ref) {
           clone = ref
         })
       })
@@ -163,7 +175,7 @@ describe("File API", function () {
     })
 
     it("should provide metadata", function () {
-      createDirectory()
+      createDirectory(fileSystem1)
 
       var metadata
       runs(function () {
@@ -185,11 +197,29 @@ describe("File API", function () {
     })
 
     it("should be movable", function () {
-      createDirectory()
+      createDirectory(fileSystem1)
 
       var moved = false
       runs(function () {
-        directory.moveTo(fileSystem.root, "moved", function (ref) {
+        directory.moveTo(fileSystem1.root, "moved", function (ref) {
+          moved = true
+          directory = ref
+        })
+      })
+
+      waitsFor(function () {
+        return moved
+      }, "the directory to be moved", TIMEOUT)
+
+      removeDirectory()
+    })
+
+    it("should be movable (remote)", function () {
+      createDirectory(fileSystem1)
+
+      var moved = false
+      runs(function () {
+        directory.moveTo(fileSystem2.root, "moved", function (ref) {
           moved = true
           directory = ref
         })
@@ -203,11 +233,38 @@ describe("File API", function () {
     })
 
     it("should be copyable", function () {
-      createDirectory()
+      createDirectory(fileSystem1)
 
       var copy
       runs(function () {
-        directory.copyTo(fileSystem.root, "copied", function (ref) {
+        directory.copyTo(fileSystem1.root, "copied", function (ref) {
+          copy = ref
+        })
+      })
+
+      waitsFor(function () {
+        return !!copy
+      }, "the directory to be copied", TIMEOUT)
+
+      runs(function () {
+        copy.remove(function () {
+          copy = null
+        })
+      })
+
+      waitsFor(function () {
+        return !(!!copy)
+      }, "the copy to be removed", TIMEOUT)
+
+      removeDirectory()
+    })
+
+    it("should be copyable (remote)", function () {
+      createDirectory(fileSystem1)
+
+      var copy
+      runs(function () {
+        directory.copyTo(fileSystem2.root, "copied", function (ref) {
           copy = ref
         })
       })
@@ -232,7 +289,7 @@ describe("File API", function () {
     xit("should provide a (unique) URL", function () {})
 
     it("should provide access to its parent", function () {
-      createDirectory()
+      createDirectory(fileSystem1)
 
       var parent
       runs(function () {
@@ -246,14 +303,14 @@ describe("File API", function () {
       }, "the directory's parent to be returned", TIMEOUT)
 
       runs(function() {
-        expect(parent.fullPath).toEqual(fileSystem.root.fullPath)
+        expect(parent.fullPath).toEqual(fileSystem1.root.fullPath)
       })
 
       removeDirectory()
     })
 
     it("should be recursively removable", function () {
-      createDirectory()
+      createDirectory(fileSystem1)
 
       var created = false
       runs(function () {
@@ -279,18 +336,18 @@ describe("File API", function () {
   })
 
   describe("directory reader", function () {
-    beforeEach(findService)
-    beforeEach(bindService)
-    beforeEach(requestFileSystem)
-    beforeEach(createDirectory)
+    beforeEach(findServices)
+    beforeEach(bindServices)
+    beforeEach(requestFileSystems)
+    beforeEach(function() { createDirectory(fileSystem1) })
     afterEach(removeDirectory)
-    afterEach(clearFileSystem)
-    afterEach(clearService)
+    afterEach(clearFileSystems)
+    afterEach(clearServices)
 
     it("should provide access to a directory's entries", function () {
       var entries = []
       runs(function () {
-        var reader = fileSystem.root.createReader()
+        var reader = fileSystem1.root.createReader()
         reader.readEntries(function (ref) {
           entries = ref
         })
@@ -307,15 +364,14 @@ describe("File API", function () {
   })
 
   var file
-  function createFile(name, options) {
+  function createFile(fileSystem, name, options) {
     var relativeName = name || "file"
       , relativeOptions = options || { create : true }
 
     runs(function () {
-      fileSystem.root.getFile(relativeName, relativeOptions,
-          function (ref) {
-            file = ref
-          })
+      fileSystem.root.getFile(relativeName, relativeOptions, function (ref) {
+        file = ref
+      })
     })
 
     waitsFor(function () {
@@ -336,25 +392,25 @@ describe("File API", function () {
   }
 
   describe("file entry", function () {
-    beforeEach(findService)
-    beforeEach(bindService)
-    beforeEach(requestFileSystem)
-    afterEach(clearFileSystem)
-    afterEach(clearService)
+    beforeEach(findServices)
+    beforeEach(bindServices)
+    beforeEach(requestFileSystems)
+    afterEach(clearFileSystems)
+    afterEach(clearServices)
 
     it("should be creatable and removable", function () {
-      createFile()
+      createFile(fileSystem1)
       removeFile()
     })
 
     xit("should not be recreatable in exlcusive mode", function () {})
 
     it("should be getable", function () {
-      createFile("file")
+      createFile(fileSystem1, "file")
 
       var clone
       runs(function () {
-        fileSystem.root.getFile("file", null, function (ref) {
+        fileSystem1.root.getFile("file", null, function (ref) {
           clone = ref
         })
       })
@@ -371,7 +427,7 @@ describe("File API", function () {
     })
 
     it("should provide metadata", function () {
-      createFile()
+      createFile(fileSystem1)
 
       var metadata
       runs(function () {
@@ -393,7 +449,7 @@ describe("File API", function () {
     })
 
     it("should provide a link", function () {
-      createFile()
+      createFile(fileSystem1)
 
       var link
       runs(function () {
@@ -406,19 +462,33 @@ describe("File API", function () {
         return !!link
       }, "the link to be returned", TIMEOUT)
 
-      runs(function () {
-        console.log(link)
-      })
-
       removeFile()
     })
 
     it("should be movable", function () {
-      createFile()
+      createFile(fileSystem1)
 
       var moved = false
       runs(function () {
-        file.moveTo(fileSystem.root, "moved", function (ref) {
+        file.moveTo(fileSystem1.root, "moved", function (ref) {
+          moved = true
+          file = ref
+        })
+      })
+
+      waitsFor(function () {
+        return moved
+      }, "the file to be moved", TIMEOUT)
+
+      removeFile()
+    })
+
+    it("should be movable (remote)", function () {
+      createFile(fileSystem1)
+
+      var moved = false
+      runs(function () {
+        file.moveTo(fileSystem2.root, "moved", function (ref) {
           moved = true
           file = ref
         })
@@ -432,11 +502,38 @@ describe("File API", function () {
     })
 
     it("should be copyable", function () {
-      createFile()
+      createFile(fileSystem1)
 
       var copy
       runs(function () {
-        file.copyTo(fileSystem.root, "copied", function (ref) {
+        file.copyTo(fileSystem1.root, "copied", function (ref) {
+          copy = ref
+        })
+      })
+
+      waitsFor(function () {
+        return !!copy
+      }, "the file to be copied", TIMEOUT)
+
+      runs(function () {
+        copy.remove(function () {
+          copy = null
+        })
+      })
+
+      waitsFor(function () {
+        return !(!!copy)
+      }, "the copy to be removed", TIMEOUT)
+
+      removeFile()
+    })
+
+    it("should be copyable (remote)", function () {
+      createFile(fileSystem1)
+
+      var copy
+      runs(function () {
+        file.copyTo(fileSystem2.root, "copied", function (ref) {
           copy = ref
         })
       })
@@ -461,7 +558,7 @@ describe("File API", function () {
     xit("should provide a (unique) URL", function () {})
 
     it("should provide access to its parent", function () {
-      createFile()
+      createFile(fileSystem1)
 
       var parent
       runs(function () {
@@ -475,7 +572,7 @@ describe("File API", function () {
       }, "the file's parent to be returned", TIMEOUT)
 
       runs(function() {
-        expect(parent.fullPath).toEqual(fileSystem.root.fullPath)
+        expect(parent.fullPath).toEqual(fileSystem1.root.fullPath)
       })
 
       removeFile()
@@ -483,13 +580,13 @@ describe("File API", function () {
   })
 
   describe("file writer", function () {
-    beforeEach(findService)
-    beforeEach(bindService)
-    beforeEach(requestFileSystem)
-    beforeEach(createFile)
+    beforeEach(findServices)
+    beforeEach(bindServices)
+    beforeEach(requestFileSystems)
+    beforeEach(function () { createFile(fileSystem1) })
     afterEach(removeFile)
-    afterEach(clearFileSystem)
-    afterEach(clearService)
+    afterEach(clearFileSystems)
+    afterEach(clearServices)
 
     it("should be able to write to a file", function () {
       var writer
@@ -736,13 +833,13 @@ describe("File API", function () {
   })
 
   xdescribe("file reader", function () {
-    beforeEach(findService)
-    beforeEach(bindService)
-    beforeEach(requestFileSystem)
-    beforeEach(createFile)
+    beforeEach(findServices)
+    beforeEach(bindServices)
+    beforeEach(requestFileSystems)
+    beforeEach(function () { createFile(fileSystem1) })
     afterEach(removeFile)
-    afterEach(clearFileSystem)
-    afterEach(clearService)
+    afterEach(clearFileSystems)
+    afterEach(clearServices)
 
     xit("should be able to read a file as ArrayBuffer", function () {})
 
