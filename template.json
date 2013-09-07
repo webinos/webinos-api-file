@@ -1,0 +1,33 @@
+{
+    "name": { 
+        "type":"text"
+      , "className":["hidden"]
+      , "defaultValue":"file"
+    }
+  , "params": {
+        "type": "object"
+      , "content": { 
+            "local":{
+                "type":"object"
+              , "className": ["optional"]
+              , "content": {
+                    "shares": {
+                        "type":"array"
+                      , "caption": "File Services"
+                      , "className":["border"]
+                      , "content": {
+                            "name": {
+                                "type":"text"
+                              , "defaultValue":"Exposed Folder"
+                            }
+                          , "path": {
+                                "type":"text"
+                              , "defaultValue" : "/path/to/exposed_folder"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
