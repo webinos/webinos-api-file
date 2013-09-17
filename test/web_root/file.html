@@ -14,19 +14,23 @@
 
 		var left = new webinos.file.demo.Explorer("table#left");
 		var right = new webinos.file.demo.Explorer("table#right");
+		// Get the selected service from the list
+		var userSelectedList = $('#pzh_pzp_list').val();
 
 		webinos.discovery.findServices(new ServiceType("http://webinos.org/api/file"), {
 			onFound: function (service) {
-				service.bindService({
-					onBind: function () {
-						service.requestFileSystem(1, 1024, function (filesystem) {
-							left.change(filesystem.root);
-							right.change(filesystem.root);
-						}, function (error) {
-							alert("Error requesting filesystem (#" + error.code + ")");
-						});
-					}
-				});
+				if (service.serviceAddress == userSelectedList){
+					service.bindService({
+						onBind: function () {
+							service.requestFileSystem(1, 1024, function (filesystem) {
+								left.change(filesystem.root);
+								right.change(filesystem.root);
+							}, function (error) {
+								alert("Error requesting filesystem (#" + error.code + ")");
+							});
+						}
+					});
+				}
 			},
 			onError: function (error) {
 				alert("Error finding service: " + error.message + " (#" + error.code + ")");
