@@ -4,17 +4,17 @@
       , "className":["hidden"]
       , "defaultValue":"file"
     }
-  , "params": {
-        "type": "object"
+  , "instancesParams": {
+        "type": "array"
+      , "caption": "File Services"
+      , "className": ["border"]
       , "content": { 
             "local":{
                 "type":"object"
               , "className": ["optional"]
               , "content": {
-                    "shares": {
-                        "type":"array"
-                      , "caption": "File Services"
-                      , "className":["border"]
+                    "share": {
+                        "type":"object"
                       , "content": {
                             "name": {
                                 "type":"text"
