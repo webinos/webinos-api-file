@@ -1,4 +1,4 @@
 {
   "apiURI": "http://webinos.org/api/file",
-  "instancesParams": []
+  "instances": []
 }
