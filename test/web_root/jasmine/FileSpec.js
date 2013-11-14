@@ -214,7 +214,7 @@ describe("File API", function () {
       removeDirectory()
     })
 
-    it("should be movable (remote)", function () {
+    xit("should be movable (remote)", function () {
       createDirectory(fileSystem1)
 
       var moved = false
@@ -259,7 +259,7 @@ describe("File API", function () {
       removeDirectory()
     })
 
-    it("should be copyable (remote)", function () {
+    xit("should be copyable (remote)", function () {
       createDirectory(fileSystem1)
 
       var copy
