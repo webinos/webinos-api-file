@@ -1,0 +1,44 @@
+{
+    "apiURI": { 
+        "type":"text"
+      , "className":["hidden"]
+      , "defaultValue":""
+    }
+  , "instances": {
+        "type": "array"
+      , "caption": "File Services"
+      , "className": ["border"]
+      , "content": { 
+            "id": {
+                "type":"text"
+              , "className": ["hidden"]
+              , "defaultValue":""
+            }
+          , "params": {
+                "type":"object"
+              , "className": ["optional"]
+              , "content": {
+                    "local":{
+                        "type":"object"
+                      , "className": ["optional"]
+                      , "content": {
+                            "share": {
+                                "type":"object"
+                              , "content": {
+                                    "name": {
+                                        "type":"text"
+                                      , "defaultValue":"Exposed Folder"
+                                    }
+                                  , "path": {
+                                        "type":"text"
+                                      , "defaultValue" : "/path/to/exposed_folder"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
