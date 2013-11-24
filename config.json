@@ -1,3 +1,4 @@
-{ "name" : "file"
-, "params" : {}
+{
+    "apiURI": "http://webinos.org/api/file",
+    "params" : {}
 }
