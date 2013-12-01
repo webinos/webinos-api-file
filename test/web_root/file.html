@@ -14,19 +14,24 @@
 
 		var left = new webinos.file.demo.Explorer("table#left");
 		var right = new webinos.file.demo.Explorer("table#right");
+		// Get the selected service from the list
+		var userSelectedList = $('#pzh_pzp_list').val();
 
 		webinos.discovery.findServices(new ServiceType("http://webinos.org/api/file"), {
 			onFound: function (service) {
-				service.bindService({
-					onBind: function () {
-						service.requestFileSystem(1, 1024, function (filesystem) {
-							left.change(filesystem.root);
-							right.change(filesystem.root);
-						}, function (error) {
-							alert("Error requesting filesystem (#" + error.code + ")");
-						});
-					}
-				});
+				if (service.serviceAddress == userSelectedList){
+					service.bindService({
+						onBind: function () {
+							service.requestFileSystem(1, 1024, function (filesystem) {
+								left.change(filesystem.root);
+								right.change(filesystem.root);
+							}, function (error) {
+								alert("Error requesting filesystem (#" + error.code + ")");
+							});
+							$("button#init").removeAttr("disabled");
+						}
+					});
+				}
 			},
 			onError: function (error) {
 				alert("Error finding service: " + error.message + " (#" + error.code + ")");
@@ -38,36 +43,38 @@
 		$("button#init").click(init);
 
         function fillPZAddrs(data) {
-         	var pzhId, connectedPzp, connectedPzh;
+         	var connectedPzhs;
+			// Empty list
+			if(document.getElementById('pzh_pzp_list'))
+                document.getElementById('pzh_pzp_list').innerHTML="";
             //If there is a pzh available
             if(typeof webinos.session.getPZHId()!="undefined") {
-                pzhId = webinos.session.getPZHId();
-                connectedPzp = data.payload.message.connectedPzp;
-                connectedPzh = data.payload.message.connectedPzh;
-            }
-            var pzpId = data.from;
+                connectedPzhs = data.payload.message.connectedDevices;
+            } 
+			
+			var connectedPzps = [];
+			$("<optgroup label = 'PZH' id ='pzh_list' >").appendTo("#pzh_pzp_list");
+            if(typeof connectedPzhs !== "undefined") {
+	            for(var i =0; i < connectedPzhs.length; i++) {
+	                $("<option value='" + connectedPzhs[i].id + "' >" +connectedPzhs[i].id + "</option>").appendTo("#pzh_pzp_list");
+					if(connectedPzhs[i].pzp !== "undefined") {
+						for(var j =0; j < connectedPzhs[i].pzp.length; j++) {
+							connectedPzps.push(connectedPzhs[i].pzp[j]);
+						}
+					}
+	            }
+	        }
+            $("</optgroup>").appendTo("#pzh_pzp_list");
 
-
-            if(document.getElementById('pzh_pzp_list'))
-                document.getElementById('pzh_pzp_list').innerHTML="";
+           
 
             $("<optgroup label = 'PZP' id ='pzp_list' >").appendTo("#pzh_pzp_list");
 
-            var i;
-            if(typeof connectedPzp !== "undefined") {
-	            for(i =0; i < connectedPzp.length; i++) {
-	                $("<option value=" + connectedPzp[i] + " >" +connectedPzp[i] + "</option>").appendTo("#pzh_pzp_list");
-	            }
-	        }
-            $("<option value="+pzpId+" >" + pzpId+ "</option>").appendTo("#pzh_pzp_list");
-            $("</optgroup>").appendTo("#pzh_pzp_list");
-            $("<optgroup label = 'PZH' id ='pzh_list' >").appendTo("#pzh_pzp_list");
-            if(typeof connectedPzh !== "undefined") {
-	            for(i =0; i < connectedPzh.length; i++) {
-	                $("<option value=" + connectedPzh[i] + " >" +connectedPzh[i] + "</option>").appendTo("#pzh_pzp_list");
-	            }
+	        for(var i =0; i < connectedPzps.length; i++) {
+	            $("<option value='" + connectedPzps[i].id + "' >" +connectedPzps[i].id + "</option>").appendTo("#pzh_pzp_list");
 	        }
             $("</optgroup>").appendTo("#pzh_pzp_list");
+            
         }
         webinos.session.addListener('registeredBrowser', fillPZAddrs);
         //TODO: Perhaps we should be reading the info from the already loaded webinos.
@@ -77,9 +84,9 @@
 
         function updatePZAddrs(data) {
             if(typeof data.payload.message.pzp !== "undefined") {
-                $("<option value=" + data.payload.message.pzp + " >" +data.payload.message.pzp + "</option>").appendTo("#pzp_list");
+                $("<option value='" + data.payload.message.pzp + "' >" +data.payload.message.pzp + "</option>").appendTo("#pzp_list");
             } else {
-                $("<option value=" + data.payload.message.pzh + " >" +data.payload.message.pzh + "</option>").appendTo("#pzh_list");
+                $("<option value='" + data.payload.message.pzh + "' >" +data.payload.message.pzh + "</option>").appendTo("#pzh_list");
             }
         }
         webinos.session.addListener('update', updatePZAddrs);
