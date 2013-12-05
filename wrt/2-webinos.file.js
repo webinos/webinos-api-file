@@ -23,13 +23,15 @@ if (typeof webinos.file === "undefined") webinos.file = {};
 
 (function (exports) {
   exports.Service = Service;
-
+  // This inherits is specified in file API so please don't use it in your own APIs
   webinos.util.inherits(Service, WebinosService);
   function Service(object, rpc) {
     WebinosService.call(this, object);
 
     this.rpc = rpc;
   }
+  // Register to the service discovery
+  _webinos.registerServiceConstructor("http://webinos.org/api/file", Service);  
 
   Service.prototype.requestFileSystem = function (type, size, successCallback, errorCallback) {
     var self = this;
